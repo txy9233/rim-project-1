@@ -15,7 +15,7 @@ const handler = (req, res) => {
     res.end(data);
   });
 };
-// get random number
+/* // get random number
 const getRandom = (min, max) => (Math.random() * (max - min)) + min;
 // size of the ball that should decrease over time/if certain conditions are met
 const size = 100;
@@ -24,8 +24,6 @@ const vector = {
   x: getRandom(1, 10),
   y: getRandom(1, 10),
 };
-const app = http.createServer(handler);
-const io = socketio(app);
 
 
 // the server should maintain a ball that bounces around and can be interacted with
@@ -34,9 +32,9 @@ const ball = {
   y: getRandom(1, 500),
   height: size,
   width: size,
-};
+}; */
 
-/*const moveBall = () => {
+/* const moveBall = () => {
   // for now, bounce ball back if it is hitting the edges
   if (ball.x <= 0 || ball.x >= 500) {
     vector.x *= -1;
@@ -48,7 +46,10 @@ const ball = {
     ball.x += vector.x;
     ball.y += vector.y;
   }
-};*/
+}; */
+
+const app = http.createServer(handler);
+const io = socketio(app);
 
 app.listen(PORT);
 
@@ -71,7 +72,7 @@ io.on('connection', (sock) => {
 
   // give socket unique id with date as well, then hex seed
   socket.square = {
-    hash: hash,
+    hash,
     lastUpdate: new Date().getTime(),
     x: xPos,
     y: 250,
