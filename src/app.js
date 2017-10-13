@@ -59,6 +59,7 @@ io.on('connection', (sock) => {
 
   const hash = xxh.h32(`${socket.id}${new Date().getTime()}`, 0xABCDEF01).toString(16);
   let xPos = 0;
+  // use the hash odd/even to determin which side user should start on
   switch (hash % 2) {
     case 1:
       xPos = 475;
@@ -70,7 +71,7 @@ io.on('connection', (sock) => {
 
   // give socket unique id with date as well, then hex seed
   socket.square = {
-    hash,
+    hash: hash,
     lastUpdate: new Date().getTime(),
     x: xPos,
     y: 250,
@@ -92,10 +93,10 @@ io.on('connection', (sock) => {
   });
 
 
-  setInterval(() => {
+  /* setInterval(() => {
     moveBall();
     io.sockets.emit('ballMovement', ball);
-  }, 100);
+  }, 100); */
 
   socket.on('disconnect', () => {
     io.sockets.in('room1').emit('left', socket.square.hash);

@@ -65,6 +65,8 @@
           square.destY = data.destY;
           square.alpha = 0.05;
           
+          ball = data;
+          
           checkCollisions();
         };
 
@@ -138,10 +140,10 @@
             ctx.restore();
             
             // draw the ball
-            ctx.save();
+            /*ctx.save();
             ctx.fillStyle = "red";
             ctx.fillRect(ball.x, ball.y, ball.width, ball.height);
-            ctx.restore();
+            ctx.restore();*/
           
             requestAnimationFrame(redraw);
         };
