@@ -36,7 +36,7 @@ const ball = {
   width: size,
 };
 
-const moveBall = () => {
+/*const moveBall = () => {
   // for now, bounce ball back if it is hitting the edges
   if (ball.x <= 0 || ball.x >= 500) {
     vector.x *= -1;
@@ -48,7 +48,7 @@ const moveBall = () => {
     ball.x += vector.x;
     ball.y += vector.y;
   }
-};
+};*/
 
 app.listen(PORT);
 
