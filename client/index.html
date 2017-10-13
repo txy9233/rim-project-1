@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Multi User Pong</title>
+    <meta charset="utf-8"/>
+    <style>
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding:0;
+      }
+      #canvas-container {
+        width: 100%;
+        text-align: center;
+      }
+      canvas {
+        display: inline;
+        margin: 10px;
+        border: 1px solid black;
+      }
+      
+      p {
+        margin-left: 12px;
+        font-size: 1.2em;
+        width: 50%; 
+      }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+	<script type="text/babel">  
+        "use strict";
+    
+        let canvas;
+        let ctx;
+        //our websocket connection
+        let socket; 
+        let hash;
+        let moveDown = false;
+        let moveUp = false;
+        let moveRight = false;
+        let moveLeft = false;
+        let ball;
+        let squares = {};
+        
+
+        const update = (data) => {
+          // if dont have user in rec, add them 
+          if(!squares[data.hash]){
+            squares[data.hash] = data;
+            return;
+          }
+          
+          const square = squares[data.hash];
+          
+          //if getting old data
+          if(squares.lastUpdate >= data.lastUpdate){
+            return;
+          }
+          
+          square.lastUpdate = data.lastUpdate;
+          square.prevX = data.prevX;
+          square.prevY = data.prevY;
+          square.destX = data.destX;
+          square.destY = data.destY;
+          square.alpha = 0.05;
+          
+          checkCollisions();
+        };
+
+        const lerp = (v0, v1, alpha) =>{
+          return (1 - alpha) * v0 + alpha * v1;
+        } 
+        
+        const removeUser = (hash) => {
+          if(squares[hash]) {
+            delete squares[hash];
+          }
+        };
+
+          
+        const setUser = (data) => {
+          hash = data.hash;
+          squares[hash] = data;
+          requestAnimationFrame(redraw);
+        };
+        
+        const updatePosition = () => {
+          const square = squares[hash];
+          
+          square.prevX = square.x;
+          square.prevY = square.y
+          if(moveUp && square.y > 0){
+            square.destY -=5;
+          }
+          
+          if(moveDown && square.y < 450) {
+            square.destY +=5;
+          }
+          
+          if(moveLeft && square.x > 0){
+            square.destX -=5;
+            
+          }
+          
+          if(moveRight && square.x < 450){
+            square.destX +=5;
+          }
+          
+          square.alpha = 0.05;
+          
+          socket.emit('movementUpdate', squares[hash]);
+        };
+        
+        const redraw = (time) => {
+            updatePosition();
+        
+            ctx.clearRect(0, 0, 500, 500);
+        
+            const keys = Object.keys(squares);
+            ctx.save();
+            for(let i = 0; i < keys.length; i++){
+              const square = squares[keys[i]];
+              
+              if(square.alpha < 1) square.alpha += 0.05;
+              
+              if(square.hash === hash){
+                ctx.fillStyle = "blue";
+              } else{
+                ctx.fillStyle = "black";
+              }
+              
+              square.x = lerp(square.prevX, square.destX, square.alpha);
+              square.y = lerp(square.prevY, square.destY, square.alpha);
+              
+              ctx.fillRect(square.x, square.y, square.width, square.height);
+            }
+            ctx.restore();
+            
+            // draw the ball
+            ctx.save();
+            ctx.fillStyle = "red";
+            ctx.fillRect(ball.x, ball.y, ball.width, ball.height);
+            ctx.restore();
+          
+            requestAnimationFrame(redraw);
+        };
+        
+        const checkCollisions = () => {
+          const keys = Object.keys(squares);
+          const thisSquare = squares[hash];
+          for (let i = 0; i < keys.length; ++i){
+            const square = squares[keys[i]];
+            //if "square" is not this current one's square
+            if(square != squares[hash]){
+              //now check for the bounds and collisions and things
+              //personal note: squares are being drawn from their top L corner
+              if (thisSquare.x < square.x + square.width &&
+                  thisSquare.x + thisSquare.width > square.x &&
+                  thisSquare.y < square.y + square.height &&
+                  thisSquare.height + thisSquare.y > square.y) {
+                    if(moveUp){
+                      thisSquare.destY +=2;
+                    }
+
+                    if(moveDown) {
+                      thisSquare.destY -=2;
+                    }
+
+                    if(moveLeft){
+                      thisSquare.destX += 2;
+
+                    }
+          
+                    if(moveRight){
+                      thisSquare.destX -=2;
+                    }
+                
+                    updatePosition();
+                  }
+              }
+          }
+          
+
+        }
+
+        const keyDownHandler = (e) => {
+            var keyPressed = e.which;
+
+            // W OR UP
+            if(keyPressed === 87 || keyPressed === 38) {
+              moveUp = true;
+            }
+            // A OR LEFT
+            else if(keyPressed === 65 || keyPressed === 37) {
+              moveLeft = true;
+            }
+            // S OR DOWN
+            else if(keyPressed === 83 || keyPressed === 40) {
+              moveDown = true;
+            }
+            // D OR RIGHT
+            else if(keyPressed === 68 || keyPressed === 39) {
+              moveRight = true;
+            }
+            
+            //if one of these keys is down, let's cancel the browsers
+            //default action so the page doesn't try to scroll on the user
+            if(moveUp || moveDown || moveLeft || moveRight) {
+              e.preventDefault();
+            }
+            
+            //socket.emit('movementUpdate', squares[hash]);
+
+        };
+        
+        const keyUpHandler = (e) => {
+            var keyPressed = e.which;
+
+            // W OR UP
+            if(keyPressed === 87 || keyPressed === 38) {
+              moveUp = false;
+            }
+            // A OR LEFT
+            else if(keyPressed === 65 || keyPressed === 37) {
+              moveLeft = false;
+            }
+            // S OR DOWN
+            else if(keyPressed === 83 || keyPressed === 40) {
+              moveDown = false;
+            }
+            // D OR RIGHT
+            else if(keyPressed === 68 || keyPressed === 39) {
+              moveRight = false;
+            }
+            //socket.emit('movementUpdate', squares[hash]);
+        };
+  
+        
+        const init = () => {
+            canvas = document.querySelector("#canvas");
+            ctx = canvas.getContext("2d");
+        
+            socket = io.connect();
+            
+            /*socket.on('connect', function () {
+              //put draw circles method here
+            });*/  
+            
+            
+            socket.on('joined', setUser);
+            
+            socket.on('updatedMovement', update);
+            
+            socket.on('left', removeUser);            
+            
+            socket.on('ballMovement', (data) => {
+              ball = data;
+            });
+          
+            document.body.addEventListener('keydown', keyDownHandler);
+            document.body.addEventListener('keyup', keyUpHandler);
+        };
+
+      window.onload = init;
+    </script>
+</head>
+<body>
+  <div id="canvas-container">
+    <canvas id="canvas" height="500" width="500">Please use an HTML 5 browser</canvas>
+  </div> 
+  <p>
+    Multi User Pong - users can move around, collide with a ball and try to bounce it to designated areas for collective points. Meant to be a collaborative game. 
+  </p>
+</body>
+</html>

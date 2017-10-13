@@ -1,0 +1,30 @@
+{
+  "name": "rim-project-1",
+  "version": "1.0.0",
+  "description": "RIM Project 1",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./src/app.js",
+    "pretest": "eslint ./src --fix",
+    "test": "echo \"Tests complete\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/txy9233/rim-project-1.git"
+  },
+  "author": "Tim Yuan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/txy9233/rim-project-1/issues"
+  },
+  "homepage": "https://github.com/txy9233/rim-project-1#readme",
+  "devDependencies": {
+    "eslint": "^4.8.0",
+    "eslint-config-airbnb": "^15.1.0",
+    "eslint-plugin-import": "^2.7.0"
+  },
+  "dependencies": {
+    "socket.io": "^2.0.3",
+    "xxhashjs": "^0.2.1"
+  }
+}
