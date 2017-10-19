@@ -1,13 +1,20 @@
-Been very sick for the past week, and was counting on using the break to work on this.
-Unfortuately, was bed ridden for all of the break, and am still very slowly recovering.
+The game I wanted to make was pong but with the rule that the ball has to be
+not hitting the walls to score points. I had a hard time understanding how to make
+the ball and the paddles work nicely with each other in terms of collision and moving
+but I eventually figured out some hackneyed solution. 
 
-Again, I should not have done this, but I based code off an in class example.
-I added code that would allow for a square ball to bounce off the paddles. 
-I was unable to get that code working in time for prototype submission, so I ended up
-commenting out/deleting all of it in frustration. 
+The server handles the movement of the ball by changing its values when pinged to do so
+from the client; it's not exactly reliable having the client be the trigger to this.
+The server also holds the code that directs the bouncing of the ball, but the collision
+of ball against paddle is handled by each server. I'm not sure if that was a good idea, 
+but it kind of works.
 
-This falls on me, I should have tried to start it a week earlier, so that I would have 
-some buffer, but unfortunately, things happened both in and out of my control.
-I aim to have something to show by next week more than just a retouched ICE. 
-I am very disappointed in myself, but I know that if I keep ragging on 
-myself like this, it will negatively impact my work in the long run. 
+Known issues:
+-The ball occasionally will get stuck on a wall when rebounding
+-Score does not draw to canvas
+-Ball size does not reset when it hits the wall
+
+I do not think i did anything above and beyond.
+
+I feel that at the end of this project something clicked and I understand websockets 
+much better, as well as how server and clients interact. 
