@@ -14,6 +14,11 @@
         width: 100%;
         text-align: center;
       }
+      #pDiv {
+        
+        width: 100%;
+        text-align: center;
+      }
       canvas {
         display: inline;
         margin: 10px;
@@ -21,6 +26,7 @@
       }
       
       p {
+        display: inline;
         margin-left: 12px;
         font-size: 1.2em;
         width: 50%; 
@@ -42,7 +48,7 @@
         let moveLeft = false;
         let ball;
         let squares = {};
-        
+        let score;
 
         const update = (data) => {
           // if dont have user in rec, add them 
@@ -63,11 +69,8 @@
           square.prevY = data.prevY;
           square.destX = data.destX;
           square.destY = data.destY;
-          square.alpha = 0.05;
-          
-          ball = data;
-          
-          checkCollisions();
+          square.alpha = 0.05;                   
+  
         };
 
         const lerp = (v0, v1, alpha) =>{
@@ -85,6 +88,8 @@
           hash = data.hash;
           squares[hash] = data;
           requestAnimationFrame(redraw);
+          requestAnimationFrame(drawBall);
+          requestAnimationFrame(drawScore);
         };
         
         const updatePosition = () => {
@@ -93,20 +98,20 @@
           square.prevX = square.x;
           square.prevY = square.y
           if(moveUp && square.y > 0){
-            square.destY -=5;
+            square.destY -=10;
           }
           
-          if(moveDown && square.y < 450) {
-            square.destY +=5;
+          if(moveDown && square.y < 720 - square.height) {
+            square.destY +=10;
           }
           
           if(moveLeft && square.x > 0){
-            square.destX -=5;
+            square.destX -=10;
             
           }
           
-          if(moveRight && square.x < 450){
-            square.destX +=5;
+          if(moveRight && square.x < 1080 - square.width){
+            square.destX +=10;
           }
           
           square.alpha = 0.05;
@@ -117,7 +122,7 @@
         const redraw = (time) => {
             updatePosition();
         
-            ctx.clearRect(0, 0, 500, 500);
+            ctx.clearRect(0, 0, 1080, 720);
         
             const keys = Object.keys(squares);
             ctx.save();
@@ -137,54 +142,43 @@
               
               ctx.fillRect(square.x, square.y, square.width, square.height);
             }
-            ctx.restore();
-            
-            // draw the ball
-            /*ctx.save();
-            ctx.fillStyle = "red";
-            ctx.fillRect(ball.x, ball.y, ball.width, ball.height);
-            ctx.restore();*/
+            ctx.restore();         
+
           
             requestAnimationFrame(redraw);
         };
+
+        const drawBall = () => {
+          // draw the ball
+          ctx.save();
+          ctx.fillStyle = "red";
+          ctx.fillRect(ball.x, ball.y, ball.width, ball.height);
+          ctx.restore();
+          requestAnimationFrame(drawBall);
+        }  
         
-        const checkCollisions = () => {
-          const keys = Object.keys(squares);
-          const thisSquare = squares[hash];
-          for (let i = 0; i < keys.length; ++i){
-            const square = squares[keys[i]];
-            //if "square" is not this current one's square
-            if(square != squares[hash]){
-              //now check for the bounds and collisions and things
-              //personal note: squares are being drawn from their top L corner
-              if (thisSquare.x < square.x + square.width &&
-                  thisSquare.x + thisSquare.width > square.x &&
-                  thisSquare.y < square.y + square.height &&
-                  thisSquare.height + thisSquare.y > square.y) {
-                    if(moveUp){
-                      thisSquare.destY +=2;
-                    }
-
-                    if(moveDown) {
-                      thisSquare.destY -=2;
-                    }
-
-                    if(moveLeft){
-                      thisSquare.destX += 2;
-
-                    }
+        const drawScore = () => {
+          const scoreString = score.toString();
           
-                    if(moveRight){
-                      thisSquare.destX -=2;
-                    }
-                
-                    updatePosition();
-                  }
-              }
-          }
-          
-
+          ctx.save();
+          ctx.font("20px Arial");
+          ctx.fillText("Score: " + scoreString, 10, 50);
+          requestAnimationFrame(drawScore);
         }
+                  
+
+        const checkCollisions = () => {
+          //only check collision against self
+          const square = squares[hash];
+            if (square.x < ball.x + ball.width &&
+                square.x + square.width > ball.x &&
+                square.y < ball.y + ball.height &&
+                square.height + square.y > ball.y) {             
+
+              socket.emit("ballCollision");  
+            }
+        }
+        
 
         const keyDownHandler = (e) => {
             var keyPressed = e.which;
@@ -205,15 +199,16 @@
             else if(keyPressed === 68 || keyPressed === 39) {
               moveRight = true;
             }
+            // space key
+            else if(keyPressed === 32){
+              socket.emit("resetBall");
+            }
             
             //if one of these keys is down, let's cancel the browsers
             //default action so the page doesn't try to scroll on the user
             if(moveUp || moveDown || moveLeft || moveRight) {
               e.preventDefault();
             }
-            
-            //socket.emit('movementUpdate', squares[hash]);
-
         };
         
         const keyUpHandler = (e) => {
@@ -235,7 +230,6 @@
             else if(keyPressed === 68 || keyPressed === 39) {
               moveRight = false;
             }
-            //socket.emit('movementUpdate', squares[hash]);
         };
   
         
@@ -244,11 +238,6 @@
             ctx = canvas.getContext("2d");
         
             socket = io.connect();
-            
-            /*socket.on('connect', function () {
-              //put draw circles method here
-            });*/  
-            
             
             socket.on('joined', setUser);
             
@@ -259,20 +248,31 @@
             socket.on('ballMovement', (data) => {
               ball = data;
             });
+            
+            socket.on('scoreUpdate', (data) => {
+              score = data;
+              console.log(score);
+              requestAnimationFrame(drawScore);
+            });
           
+            setInterval(checkCollisions, 10);
             document.body.addEventListener('keydown', keyDownHandler);
             document.body.addEventListener('keyup', keyUpHandler);
         };
 
       window.onload = init;
+      
+
     </script>
 </head>
 <body>
   <div id="canvas-container">
-    <canvas id="canvas" height="500" width="500">Please use an HTML 5 browser</canvas>
+    <canvas id="canvas" height="720" width="1080">Please use an HTML 5 browser</canvas>
   </div> 
-  <p>
-    Multi User Pong - users can move around, collide with a ball and try to bounce it to designated areas for collective points. Meant to be a collaborative game. 
-  </p>
+  <div id="pDiv">
+    <p>
+      Multi User Pong - users can move around, collide with a ball and try to bounce it off each other for points. Meant to be a collaborative game. 
+    </p>
+  </div>
 </body>
 </html>

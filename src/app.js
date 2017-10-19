@@ -15,38 +15,30 @@ const handler = (req, res) => {
     res.end(data);
   });
 };
-/* // get random number
+
+// get random number
 const getRandom = (min, max) => (Math.random() * (max - min)) + min;
+
 // size of the ball that should decrease over time/if certain conditions are met
-const size = 100;
+let size = 100;
+
+// score of the players
+let score = 0;
+
 // movement vector for ball
 const vector = {
-  x: getRandom(1, 10),
-  y: getRandom(1, 10),
+  x: getRandom(1, 5),
+  y: getRandom(1, 5),
 };
 
 
 // the server should maintain a ball that bounces around and can be interacted with
 const ball = {
-  x: getRandom(1, 500),
-  y: getRandom(1, 500),
+  x: 250,
+  y: 250,
   height: size,
   width: size,
-}; */
-
-/* const moveBall = () => {
-  // for now, bounce ball back if it is hitting the edges
-  if (ball.x <= 0 || ball.x >= 500) {
-    vector.x *= -1;
-    ball.x += vector.x;
-  } else if (ball.y <= 0 || ball.y >= 500) {
-    vector.y *= -1;
-    ball.y += vector.y;
-  } else {
-    ball.x += vector.x;
-    ball.y += vector.y;
-  }
-}; */
+};
 
 const app = http.createServer(handler);
 const io = socketio(app);
@@ -54,33 +46,50 @@ const io = socketio(app);
 app.listen(PORT);
 
 
+const moveBall = () => {
+  // bounce ball back if it is hitting the edges and reset size
+  if (ball.x <= 0 || ball.x >= 1080 - size) {
+    vector.x *= -1;
+    ball.x += vector.x;
+    size = 100;
+    score = 0;
+  } else if (ball.y <= 0 || ball.y >= 720 - size) {
+    vector.y *= -1;
+    ball.y += vector.y;
+    size = 100;
+    score = 0;
+  } else {
+    ball.x += vector.x;
+    ball.y += vector.y;
+  }
+};
+
+const resetBall = () => {
+  ball.x = 540;
+  ball.y = 360;
+  size = 100;
+  ball.width = size;
+  ball.height = size;
+  score = 0;
+};
+
 io.on('connection', (sock) => {
   const socket = sock;
   socket.join('room1');
 
   const hash = xxh.h32(`${socket.id}${new Date().getTime()}`, 0xABCDEF01).toString(16);
-  let xPos = 0;
-  // use the hash odd/even to determin which side user should start on
-  switch (hash % 2) {
-    case 1:
-      xPos = 475;
-      break;
-    default:
-      xPos = 0;
-      break;
-  }
 
   // give socket unique id with date as well, then hex seed
   socket.square = {
     hash,
     lastUpdate: new Date().getTime(),
-    x: xPos,
+    x: 0,
     y: 250,
     height: 100,
     width: 25,
     prevX: 0,
     prevY: 0,
-    destX: xPos,
+    destX: 0,
     destY: 250,
     alpha: 0,
   };
@@ -93,11 +102,34 @@ io.on('connection', (sock) => {
     socket.broadcast.to('room1').emit('updatedMovement', socket.square);
   });
 
+  socket.on('ballCollision', () => {
+  // console.log("received collision");
+  // when there is a collision, send the ball back the opposite direction
 
-  /* setInterval(() => {
-    moveBall();
+
+    vector.x *= -1;
+    vector.y *= -1;
+
+    ball.x += vector.x;
+    ball.y += vector.y;
+
+    // decrement the ball size
+    // logic check - size should not be too small
+
+    if (size > 10) --size;
+    ball.width = size;
+    ball.height = size;
+
+    // the smaller the size of the ball, the higher the score
+    score += 100 / size;
+  });
+
+  socket.on('resetBall', () => {
+    resetBall();
+
     io.sockets.emit('ballMovement', ball);
-  }, 100); */
+    moveBall();
+  });
 
   socket.on('disconnect', () => {
     io.sockets.in('room1').emit('left', socket.square.hash);
@@ -105,5 +137,17 @@ io.on('connection', (sock) => {
     socket.leave('room1');
   });
 });
+
+
+// first ball movement to kick off 
+io.sockets.emit('ballMovement', ball);
+io.sockets.emit('scoreUpdate', score);
+
+
+setInterval(() => {
+  io.sockets.emit('ballMovement', ball);
+  moveBall();
+  io.sockets.emit('scoreUpdate', score);
+}, 10);
 
 console.log(`listening on port ${PORT}`);
